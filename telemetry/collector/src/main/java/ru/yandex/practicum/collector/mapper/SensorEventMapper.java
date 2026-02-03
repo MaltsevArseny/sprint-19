@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.collector.dto.*;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 
+@SuppressWarnings("unused")
 @Component
 public class SensorEventMapper {
 

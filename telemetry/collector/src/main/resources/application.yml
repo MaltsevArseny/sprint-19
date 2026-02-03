@@ -6,4 +6,5 @@ spring:
     bootstrap-servers: localhost:9092
 collector:
   topics:
-    sensors: telemetry.sensors.v1
+    sensors: telemetry.sensors
+    hubs: telemetry.hubs

@@ -3,18 +3,19 @@ package ru.yandex.practicum.collector.util;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumWriter;
-import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
+import org.apache.avro.specific.SpecificRecordBase;
 
 import java.io.ByteArrayOutputStream;
 
 public class AvroSerializer {
 
-    public static byte[] serialize(SensorEventAvro event) {
+    public static byte[] serialize(SpecificRecordBase event) {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-            SpecificDatumWriter<SensorEventAvro> writer =
-                    new SpecificDatumWriter<>(SensorEventAvro.class);
+            // ✅ типобезопасно
+            SpecificDatumWriter<SpecificRecordBase> writer =
+                    new SpecificDatumWriter<>(event.getSchema());
 
             BinaryEncoder encoder =
                     EncoderFactory.get().binaryEncoder(out, null);
