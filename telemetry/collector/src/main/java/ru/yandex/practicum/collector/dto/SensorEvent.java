@@ -1,6 +1,7 @@
 package ru.yandex.practicum.collector.dto;
 
 import com.fasterxml.jackson.annotation.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -23,8 +24,13 @@ import java.time.Instant;
 @Setter
 public abstract class SensorEvent {
 
+    @NotBlank
     private String id;
+
+    @NotBlank
     private String hubId;
-    private Instant timestamp;
+
+    private Instant timestamp = Instant.now();
+
     private SensorEventType type;
 }

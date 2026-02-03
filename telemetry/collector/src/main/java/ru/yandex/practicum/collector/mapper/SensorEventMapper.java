@@ -1,12 +1,8 @@
 package ru.yandex.practicum.collector.mapper;
 
-
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.collector.dto.*;
 import ru.yandex.practicum.kafka.telemetry.event.*;
-
-
-import java.time.Instant;
 
 @Component
 public class SensorEventMapper {
@@ -14,9 +10,12 @@ public class SensorEventMapper {
     public SensorEventAvro toAvro(SensorEvent e) {
 
         SensorEventAvro avro = new SensorEventAvro();
+
         avro.setId(e.getId());
         avro.setHubId(e.getHubId());
-        avro.setTimestamp(Instant.ofEpochSecond(e.getTimestamp().toEpochMilli()));
+
+        // ✅ Правильный timestamp
+        avro.setTimestamp(e.getTimestamp());
 
         switch (e.getType()) {
 
@@ -24,7 +23,8 @@ public class SensorEventMapper {
                 LightSensorEvent l = (LightSensorEvent) e;
                 avro.setPayload(new LightSensorAvro(
                         l.getLinkQuality(),
-                        l.getLuminosity()));
+                        l.getLuminosity()
+                ));
             }
 
             case MOTION_SENSOR_EVENT -> {
@@ -32,12 +32,15 @@ public class SensorEventMapper {
                 avro.setPayload(new MotionSensorAvro(
                         m.getLinkQuality(),
                         m.isMotion(),
-                        m.getVoltage()));
+                        m.getVoltage()
+                ));
             }
 
             case SWITCH_SENSOR_EVENT -> {
                 SwitchSensorEvent s = (SwitchSensorEvent) e;
-                avro.setPayload(new SwitchSensorAvro(s.isState()));
+                avro.setPayload(new SwitchSensorAvro(
+                        s.isState()
+                ));
             }
 
             case CLIMATE_SENSOR_EVENT -> {
@@ -45,17 +48,21 @@ public class SensorEventMapper {
                 avro.setPayload(new ClimateSensorAvro(
                         c.getTemperatureC(),
                         c.getHumidity(),
-                        c.getCo2Level()));
+                        c.getCo2Level()
+                ));
             }
 
             case TEMPERATURE_SENSOR_EVENT -> {
                 TemperatureSensorEvent t = (TemperatureSensorEvent) e;
                 avro.setPayload(new TemperatureSensorAvro(
                         t.getTemperatureC(),
-                        t.getTemperatureF()));
-
+                        t.getTemperatureF()
+                ));
             }
 
+            default -> throw new IllegalArgumentException(
+                    "Unknown sensor event type: " + e.getType()
+            );
         }
 
         return avro;
