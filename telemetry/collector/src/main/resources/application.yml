@@ -1,10 +1,25 @@
-server:
-  port: 8080
-
 spring:
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smarthome
+    username: postgres
+    password: password
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
   kafka:
     bootstrap-servers: localhost:9092
-collector:
+
+analyzer:
   topics:
-    sensors: telemetry.sensors
-    hubs: telemetry.hubs
+    snapshots: telemetry.snapshots.v1
+    hubs: telemetry.hubs.v1
+
+grpc:
+  client:
+    hub-router:
+      address: static://localhost:59090
+      negotiationType: plaintext
