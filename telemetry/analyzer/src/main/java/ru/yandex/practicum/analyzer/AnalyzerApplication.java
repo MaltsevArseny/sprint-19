@@ -4,7 +4,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import ru.yandex.practicum.analyzer.processor.HubEventProcessor;
-import ru.yandex.practicum.analyzer.processor.SnapshotProcessor;
 
 @SpringBootApplication
 public class AnalyzerApplication {
@@ -14,13 +13,10 @@ public class AnalyzerApplication {
         ConfigurableApplicationContext context =
                 SpringApplication.run(AnalyzerApplication.class, args);
 
-        HubEventProcessor hubProcessor =
+        HubEventProcessor processor =
                 context.getBean(HubEventProcessor.class);
 
-        SnapshotProcessor snapshotProcessor =
-                context.getBean(SnapshotProcessor.class);
-
-        new Thread(hubProcessor).start();
-        new Thread(snapshotProcessor).start();
+        // запускаем обработку в текущем потоке
+        processor.run();
     }
 }

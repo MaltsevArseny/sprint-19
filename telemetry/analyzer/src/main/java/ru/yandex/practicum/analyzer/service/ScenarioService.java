@@ -7,7 +7,6 @@ import ru.yandex.practicum.analyzer.repository.ScenarioRepository;
 
 import java.util.List;
 
-@SuppressWarnings("unused")
 @Service
 @RequiredArgsConstructor
 public class ScenarioService {

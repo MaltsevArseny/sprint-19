@@ -4,10 +4,11 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
+@Entity
 @Getter
 @Setter
-@Entity
-@Table(name = "scenarios")
 public class Scenario {
 
     @Id
@@ -16,4 +17,10 @@ public class Scenario {
 
     private String hubId;
     private String name;
+
+    @ManyToMany
+    private List<Condition> conditions;
+
+    @ManyToMany
+    private List<Action> actions;
 }
