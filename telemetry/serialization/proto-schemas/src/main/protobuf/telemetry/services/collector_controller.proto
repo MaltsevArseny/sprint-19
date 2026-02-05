@@ -2,14 +2,12 @@ syntax = "proto3";
 
 package telemetry.services;
 
-option java_multiple_files = true;
-option java_package = "ru.yandex.practicum.grpc.telemetry.event";
-
 import "telemetry/messages/sensor_event.proto";
 import "telemetry/messages/hub_event.proto";
 
-service Collector {
+option java_multiple_files = true;
 
+service Collector {
   rpc collectSensorEvent (telemetry.messages.SensorEvent)
       returns (CollectResponse);
 

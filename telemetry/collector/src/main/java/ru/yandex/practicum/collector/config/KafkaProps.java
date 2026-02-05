@@ -1,12 +1,15 @@
-package ru.yandex.practicum.aggregator.config;
+package ru.yandex.practicum.collector.config;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-@Data
+@SuppressWarnings("unused")
 @Configuration
 @ConfigurationProperties(prefix = "kafka")
+@Getter
+@Setter
 public class KafkaProps {
 
     private String bootstrapServers;

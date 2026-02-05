@@ -25,9 +25,11 @@ public class CollectorKafkaService {
     private KafkaProducer<String, Object> producer;
 
     private KafkaProducer<String, Object> getProducer() {
+
         if (producer == null) {
 
             Properties props = new Properties();
+
             props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                     kafkaProps.getBootstrapServers());
 
@@ -87,11 +89,10 @@ public class CollectorKafkaService {
         });
     }
 
-    // --- корректное завершение ---
     @PreDestroy
     public void shutdown() {
         if (producer != null) {
-            log.info("Flushing Kafka producer...");
+            log.info("Closing Kafka producer...");
             producer.flush();
             producer.close();
         }

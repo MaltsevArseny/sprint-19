@@ -1,16 +1,14 @@
 package ru.yandex.practicum.aggregator.config;
 
-import lombok.Getter;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+@Data
 @Configuration
-@Getter
+@ConfigurationProperties(prefix = "topics")
 public class TopicProps {
 
-    @Value("${topics.sensors:sensors}")
     private String sensors;
-
-    @Value("${topics.snapshots:snapshots}")
     private String snapshots;
 }

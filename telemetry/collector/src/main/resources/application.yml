@@ -12,6 +12,8 @@ spring:
 
   kafka:
     bootstrap-servers: localhost:9092
+    schema-registry: http://localhost:8081
+
 
 analyzer:
   topics:
@@ -23,3 +25,9 @@ grpc:
     hub-router:
       address: static://localhost:59090
       negotiationType: plaintext
+
+      collector:
+        topics:
+          sensors: telemetry.sensors
+          hubs: telemetry.hubs
+

@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import net.devh.boot.grpc.server.service.GrpcService;
 import ru.yandex.practicum.collector.service.CollectorKafkaService;
 import ru.yandex.practicum.grpc.telemetry.event.*;
+import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 
 @SuppressWarnings("unused")
 @GrpcService
@@ -18,7 +20,13 @@ public class CollectorGrpcService extends CollectorGrpc.CollectorImplBase {
             SensorEvent request,
             StreamObserver<CollectResponse> responseObserver) {
 
-        kafkaService.sendSensor(request);
+        SensorEventAvro avro = SensorEventAvro.newBuilder()
+                .setId(request.getId())
+                .setHubId(request.getHubId())
+                .setTimestamp(request.getTimestamp())
+                .build();
+
+        kafkaService.sendSensorEvent(avro);
 
         responseObserver.onNext(
                 CollectResponse.newBuilder()
@@ -33,7 +41,12 @@ public class CollectorGrpcService extends CollectorGrpc.CollectorImplBase {
             HubEvent request,
             StreamObserver<CollectResponse> responseObserver) {
 
-        kafkaService.sendHub(request);
+        HubEventAvro avro = HubEventAvro.newBuilder()
+                .setHubId(request.getHubId())
+                .setTimestamp(request.getTimestamp())
+                .build();
+
+        kafkaService.sendHubEvent(avro);
 
         responseObserver.onNext(
                 CollectResponse.newBuilder()
