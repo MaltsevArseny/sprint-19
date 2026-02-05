@@ -16,3 +16,10 @@ analyzer:
   topics:
     hubs: telemetry.hubs.v1
     snapshots: telemetry.snapshots.v1
+server:
+  port: 8080
+
+collector:
+  topics:
+    hubs: telemetry.hubs.v1
+    snapshots: telemetry.snapshots.v1

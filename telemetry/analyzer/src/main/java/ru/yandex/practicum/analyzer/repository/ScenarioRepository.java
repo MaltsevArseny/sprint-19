@@ -5,6 +5,7 @@ import ru.yandex.practicum.analyzer.entity.Scenario;
 
 import java.util.List;
 
+@SuppressWarnings("unused")
 public interface ScenarioRepository
         extends JpaRepository<Scenario, Long> {
 

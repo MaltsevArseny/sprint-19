@@ -1,19 +1,14 @@
 package ru.yandex.practicum.analyzer.service;
 
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.analyzer.entity.Scenario;
-import ru.yandex.practicum.analyzer.repository.ScenarioRepository;
 
-import java.util.List;
-
+@SuppressWarnings("unused")
 @Service
-@RequiredArgsConstructor
+@Slf4j
 public class ScenarioService {
 
-    private final ScenarioRepository repository;
-
-    public List<Scenario> findByHub(String hubId) {
-        return repository.findByHubId(hubId);
+    public void process(String hubId) {
+        log.info("Processing scenarios for hub {}", hubId);
     }
 }
