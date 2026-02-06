@@ -1,118 +1,88 @@
 package ru.yandex.practicum.aggregator.processor;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.springframework.stereotype.Component;
-import ru.yandex.practicum.aggregator.config.KafkaProps;
-import ru.yandex.practicum.aggregator.config.TopicProps;
-import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
-import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SnapshotAvro;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.Properties;
 
 @SuppressWarnings("unused")
-@Component
-@RequiredArgsConstructor
-@Slf4j
 public class AggregatorProcessor implements Runnable {
 
-    private final KafkaProps kafkaProps;
-    private final TopicProps topicProps;
+    private static final Logger log =
+            LoggerFactory.getLogger(AggregatorProcessor.class);
 
-    private final Map<CharSequence, SensorEventAvro> state = new HashMap<>();
+    private final KafkaConsumer<String, HubEventAvro> consumer;
+    private final KafkaProducer<String, SnapshotAvro> producer;
 
     private volatile boolean running = true;
 
-    private KafkaConsumer<String, SensorEventAvro> consumer;
+    public AggregatorProcessor(Properties consumerProps,
+                               Properties producerProps) {
 
-    @PostConstruct
-    public void start() {
-        new Thread(this).start();
+        this.consumer = new KafkaConsumer<>(consumerProps);
+        this.producer = new KafkaProducer<>(producerProps);
+
+        consumer.subscribe(Collections.singletonList("hub-events"));
     }
 
     @Override
     public void run() {
 
-        Properties cProps = new Properties();
-        cProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProps.getBootstrapServers());
-        cProps.put(ConsumerConfig.GROUP_ID_CONFIG, "aggregator");
-        cProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        cProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                io.confluent.kafka.serializers.KafkaAvroDeserializer.class);
-        cProps.put("schema.registry.url", kafkaProps.getSchemaRegistry());
-        cProps.put("specific.avro.reader", true);
-        cProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-
-        Properties pProps = new Properties();
-        pProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProps.getBootstrapServers());
-        pProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        pProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                io.confluent.kafka.serializers.KafkaAvroSerializer.class);
-        pProps.put("schema.registry.url", kafkaProps.getSchemaRegistry());
-
-        consumer = new KafkaConsumer<>(cProps);
-
-        try (KafkaProducer<String, SensorsSnapshotAvro> producer = new KafkaProducer<>(pProps)) {
-            consumer.subscribe(Collections.singleton(topicProps.getSensors()));
-
+        try {
             while (running) {
 
-                ConsumerRecords<String, SensorEventAvro> records =
+                ConsumerRecords<String, HubEventAvro> records =
                         consumer.poll(Duration.ofMillis(500));
 
-                boolean updated = false;
+                for (ConsumerRecord<String, HubEventAvro> record : records) {
 
-                for (ConsumerRecord<String, SensorEventAvro> r : records) {
-                    SensorEventAvro event = r.value();
-
-                    if (!event.equals(state.get(event.getId()))) {
-                        state.put(event.getId(), event);
-                        updated = true;
-                    }
-                }
-
-                if (updated && !state.isEmpty()) {
-
-                    SensorEventAvro any =
-                            state.values().iterator().next();
-
-                    SensorsSnapshotAvro snapshot =
-                            SensorsSnapshotAvro.newBuilder()
-                                    .setHubId(any.getHubId())
-                                    .setTimestamp(Instant.now())
-                                    .setSensors(new ArrayList<>(state.values()))
-                                    .build();
+                    SnapshotAvro snapshot =
+                            aggregate(record.value());
 
                     producer.send(new ProducerRecord<>(
-                            topicProps.getSnapshots(),
-                            any.getHubId().toString(),
+                            "snapshots",
+                            record.key(),
                             snapshot
                     ));
-
-                    producer.flush();
                 }
 
                 consumer.commitSync();
             }
 
-        } catch (WakeupException ignored) {
+        } catch (WakeupException e) {
+            log.info("Shutdown signal received");
+        } catch (Exception e) {
+            log.error("Error in aggregator", e);
         } finally {
-            consumer.close();
+
+            try {
+                producer.flush();
+                consumer.commitSync();
+            } finally {
+                consumer.close();
+                producer.close();
+            }
         }
     }
 
-    @PreDestroy
+    private SnapshotAvro aggregate(HubEventAvro event) {
+
+        return SnapshotAvro.newBuilder()
+                .setHubId(event.getHubId())
+                .setTimestamp(System.currentTimeMillis())
+                .build();
+    }
+
     public void shutdown() {
         running = false;
-        if (consumer != null) consumer.wakeup();
+        consumer.wakeup();
     }
 }

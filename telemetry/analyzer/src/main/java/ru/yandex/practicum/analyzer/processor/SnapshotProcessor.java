@@ -1,98 +1,69 @@
 package ru.yandex.practicum.analyzer.processor;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
-import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.springframework.stereotype.Component;
-import ru.yandex.practicum.analyzer.config.KafkaProps;
-import ru.yandex.practicum.analyzer.config.TopicProps;
-import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
-import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ru.yandex.practicum.analyzer.repository.ScenarioRepository;
+import ru.yandex.practicum.analyzer.repository.SensorRepository;
+import ru.yandex.practicum.kafka.telemetry.event.SnapshotAvro;
 
 import java.time.Duration;
-import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 @SuppressWarnings("unused")
-@Component
-@RequiredArgsConstructor
-@Slf4j
 public class SnapshotProcessor implements Runnable {
 
-    private final KafkaProps kafkaProps;
-    private final TopicProps topicProps;
+    private static final Logger log =
+            LoggerFactory.getLogger(SnapshotProcessor.class);
+
+    private final KafkaConsumer<String, SnapshotAvro> consumer;
 
     private volatile boolean running = true;
-    private KafkaConsumer<String, SensorsSnapshotAvro> consumer;
 
-    // автозапуск потока
-    @PostConstruct
-    public void start() {
-        new Thread(this).start();
+    public SnapshotProcessor(Properties props,
+                             ScenarioRepository scenarioRepository,
+                             SensorRepository sensorRepository) {
+
+        this.consumer = new KafkaConsumer<>(props);
+
+        consumer.subscribe(List.of("snapshots"));
     }
 
     @Override
     public void run() {
-
-        Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                kafkaProps.getBootstrapServers());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "analyzer-snapshots");
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                io.confluent.kafka.serializers.KafkaAvroDeserializer.class);
-        props.put("schema.registry.url",
-                kafkaProps.getSchemaRegistry());
-        props.put("specific.avro.reader", true);
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-
-        consumer = new KafkaConsumer<>(props);
-
         try {
-            consumer.subscribe(
-                    Collections.singleton(topicProps.getSnapshots()));
-
             while (running) {
 
-                ConsumerRecords<String, SensorsSnapshotAvro> records =
+                ConsumerRecords<String, SnapshotAvro> records =
                         consumer.poll(Duration.ofMillis(500));
 
-                for (ConsumerRecord<String, SensorsSnapshotAvro> r : records) {
-
-                    SensorsSnapshotAvro snapshot = r.value();
-
-                    log.info("Snapshot from hub {} devices={}",
-                            snapshot.getHubId(),
-                            snapshot.getSensors().size());
-
-                    for (SensorEventAvro s : snapshot.getSensors()) {
-                        log.debug("Sensor {} timestamp {}",
-                                s.getId(),
-                                s.getTimestamp());
-                    }
+                for (ConsumerRecord<String, SnapshotAvro> record : records) {
+                    processSnapshot(record.value());
                 }
 
-                // фиксируем offset вручную
                 consumer.commitSync();
             }
 
-        } catch (WakeupException ignored) {
-            log.info("SnapshotProcessor shutting down");
         } finally {
-            consumer.close();
+            try {
+                consumer.commitSync();
+            } finally {
+                log.info("Closing consumer");
+                consumer.close();
+            }
         }
     }
 
-    @PreDestroy
+    private void processSnapshot(SnapshotAvro snapshot) {
+        log.info("Snapshot received for hub: {}", snapshot.getHubId());
+
+        // TODO: логика проверки сценариев
+    }
+
     public void shutdown() {
         running = false;
-        if (consumer != null) {
-            consumer.wakeup();
-        }
+        consumer.wakeup();
     }
 }

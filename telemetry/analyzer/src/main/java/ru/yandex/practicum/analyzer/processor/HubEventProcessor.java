@@ -1,92 +1,86 @@
 package ru.yandex.practicum.analyzer.processor;
 
-import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.springframework.stereotype.Component;
-import ru.yandex.practicum.analyzer.config.KafkaProps;
-import ru.yandex.practicum.analyzer.config.TopicProps;
-import ru.yandex.practicum.kafka.telemetry.event.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ru.yandex.practicum.analyzer.entity.Sensor;
+import ru.yandex.practicum.analyzer.repository.SensorRepository;
+import ru.yandex.practicum.analyzer.repository.ScenarioRepository;
+
+import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collections;
+import java.util.Properties;
 
-@Component
-@RequiredArgsConstructor
-@Slf4j
+@SuppressWarnings("unused")
 public class HubEventProcessor implements Runnable {
 
-    private final KafkaProps kafkaProps;
-    private final TopicProps topicProps;
+    private static final Logger log =
+            LoggerFactory.getLogger(HubEventProcessor.class);
 
-    private final Map<String, Set<String>> hubDevices = new HashMap<>();
+    private final KafkaConsumer<String, Object> consumer;
+    private final SensorRepository sensorRepository;
 
     private volatile boolean running = true;
-    private KafkaConsumer<String, HubEventAvro> consumer;
+
+    public HubEventProcessor(Properties props,
+                             SensorRepository sensorRepository,
+                             ScenarioRepository scenarioRepository) {
+
+        this.consumer = new KafkaConsumer<>(props);
+        this.sensorRepository = sensorRepository;
+
+        consumer.subscribe(Collections.singletonList("hub-events"));
+    }
 
     @Override
     public void run() {
 
-        Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                kafkaProps.getBootstrapServers());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "analyzer-hubs");
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                io.confluent.kafka.serializers.KafkaAvroDeserializer.class);
-        props.put("schema.registry.url", kafkaProps.getSchemaRegistry());
-        props.put("specific.avro.reader", true);
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-
-        consumer = new KafkaConsumer<>(props);
-
         try {
-            consumer.subscribe(Collections.singleton(topicProps.getHubs()));
-
             while (running) {
 
-                ConsumerRecords<String, HubEventAvro> records =
+                ConsumerRecords<String, Object> records =
                         consumer.poll(Duration.ofMillis(500));
 
-                for (ConsumerRecord<String, HubEventAvro> r : records) {
-
-                    HubEventAvro event = r.value();
-                    String hubId = event.getHubId().toString();
-
-                    hubDevices.putIfAbsent(hubId, new HashSet<>());
-
-                    Object payload = event.getPayload();
-
-                    if (payload instanceof DeviceAddedEventAvro added) {
-                        hubDevices.get(hubId).add(added.getId().toString());
-                        log.info("Device added: {} to hub {}",
-                                added.getId(), hubId);
-                    }
-
-                    if (payload instanceof DeviceRemovedEventAvro removed) {
-                        hubDevices.get(hubId).remove(removed.getId().toString());
-                        log.info("Device removed: {} from hub {}",
-                                removed.getId(), hubId);
-                    }
+                for (ConsumerRecord<String, Object> record : records) {
+                    handleEvent(record.value());
                 }
 
                 consumer.commitSync();
             }
 
         } catch (WakeupException e) {
-            log.info("HubEventProcessor shutting down");
+            log.info("Shutdown signal");
         } finally {
-            consumer.close();
+
+            try {
+                consumer.commitSync();
+            } finally {
+                consumer.close();
+            }
         }
     }
 
-    @PreDestroy
+    private void handleEvent(Object event) {
+
+        if (event instanceof SensorEventAvro sensorEvent) {
+
+            Sensor sensor = new Sensor();
+
+            sensor.setId(sensorEvent.getId());
+            sensor.setHubId(sensorEvent.getHubId());
+
+            sensorRepository.save(sensor);
+
+            log.info("Saved sensor {}", sensor.getId());
+        }
+    }
+
     public void shutdown() {
         running = false;
-        if (consumer != null) consumer.wakeup();
+        consumer.wakeup();
     }
 }
