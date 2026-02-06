@@ -8,20 +8,20 @@ import ru.yandex.practicum.kafka.telemetry.event.*;
 @Component
 public class SensorEventMapper {
 
-    public SensorEventAvro toAvro(SensorEvent e) {
+    public SensorEventAvro toAvro(ru.yandex.practicum.collector.dto.SensorEvent e) {
 
         SensorEventAvro avro = new SensorEventAvro();
 
         avro.setId(e.getId());
         avro.setHubId(e.getHubId());
 
-        // ✅ Правильный timestamp
-        avro.setTimestamp(e.getTimestamp());
+        // ✅ FIX
+        avro.setTimestamp(e.getTimestamp().toEpochMilli());
 
         switch (e.getType()) {
 
             case LIGHT_SENSOR_EVENT -> {
-                LightSensorEvent l = (LightSensorEvent) e;
+                ru.yandex.practicum.collector.dto.LightSensorEvent l = (ru.yandex.practicum.collector.dto.LightSensorEvent) e;
                 avro.setPayload(new LightSensorAvro(
                         l.getLinkQuality(),
                         l.getLuminosity()
@@ -29,7 +29,7 @@ public class SensorEventMapper {
             }
 
             case MOTION_SENSOR_EVENT -> {
-                MotionSensorEvent m = (MotionSensorEvent) e;
+                ru.yandex.practicum.collector.dto.MotionSensorEvent m = (ru.yandex.practicum.collector.dto.MotionSensorEvent) e;
                 avro.setPayload(new MotionSensorAvro(
                         m.getLinkQuality(),
                         m.isMotion(),
@@ -38,14 +38,14 @@ public class SensorEventMapper {
             }
 
             case SWITCH_SENSOR_EVENT -> {
-                SwitchSensorEvent s = (SwitchSensorEvent) e;
+                ru.yandex.practicum.collector.dto.SwitchSensorEvent s = (ru.yandex.practicum.collector.dto.SwitchSensorEvent) e;
                 avro.setPayload(new SwitchSensorAvro(
                         s.isState()
                 ));
             }
 
             case CLIMATE_SENSOR_EVENT -> {
-                ClimateSensorEvent c = (ClimateSensorEvent) e;
+                ru.yandex.practicum.collector.dto.ClimateSensorEvent c = (ru.yandex.practicum.collector.dto.ClimateSensorEvent) e;
                 avro.setPayload(new ClimateSensorAvro(
                         c.getTemperatureC(),
                         c.getHumidity(),

@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
-import ru.yandex.practicum.kafka.telemetry.event.SnapshotAvro;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -20,7 +19,7 @@ public class AggregatorProcessor implements Runnable {
             LoggerFactory.getLogger(AggregatorProcessor.class);
 
     private final KafkaConsumer<String, HubEventAvro> consumer;
-    private final KafkaProducer<String, SnapshotAvro> producer;
+    private final KafkaProducer<String, HubEventAvro> producer;
 
     private volatile boolean running = true;
 
@@ -44,13 +43,10 @@ public class AggregatorProcessor implements Runnable {
 
                 for (ConsumerRecord<String, HubEventAvro> record : records) {
 
-                    SnapshotAvro snapshot =
-                            aggregate(record.value());
-
                     producer.send(new ProducerRecord<>(
                             "snapshots",
                             record.key(),
-                            snapshot
+                            record.value()
                     ));
                 }
 
@@ -59,8 +55,6 @@ public class AggregatorProcessor implements Runnable {
 
         } catch (WakeupException e) {
             log.info("Shutdown signal received");
-        } catch (Exception e) {
-            log.error("Error in aggregator", e);
         } finally {
 
             try {
@@ -71,14 +65,6 @@ public class AggregatorProcessor implements Runnable {
                 producer.close();
             }
         }
-    }
-
-    private SnapshotAvro aggregate(HubEventAvro event) {
-
-        return SnapshotAvro.newBuilder()
-                .setHubId(event.getHubId())
-                .setTimestamp(System.currentTimeMillis())
-                .build();
     }
 
     public void shutdown() {

@@ -70,8 +70,8 @@ public class HubEventProcessor implements Runnable {
 
             Sensor sensor = new Sensor();
 
-            sensor.setId(sensorEvent.getId());
-            sensor.setHubId(sensorEvent.getHubId());
+            sensor.setId((String) sensorEvent.getId());
+            sensor.setHubId((String) sensorEvent.getHubId());
 
             sensorRepository.save(sensor);
 

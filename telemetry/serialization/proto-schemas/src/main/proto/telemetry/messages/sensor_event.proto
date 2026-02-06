@@ -2,10 +2,11 @@ syntax = "proto3";
 
 package telemetry.messages;
 
+option java_package = "telemetry.messages";
 option java_multiple_files = true;
 
 message SensorEvent {
   string sensor_id = 1;
   string hub_id = 2;
-  int64 ts = 3;
+  int64 timestamp = 3;
 }

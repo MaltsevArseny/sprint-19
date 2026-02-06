@@ -6,6 +6,7 @@ import ru.yandex.practicum.collector.dto.SensorEvent;
 import ru.yandex.practicum.collector.dto.hub.HubEvent;
 import ru.yandex.practicum.collector.service.CollectorService;
 
+@SuppressWarnings("unused")
 @RestController
 @RequestMapping("/events")
 @RequiredArgsConstructor
