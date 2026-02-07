@@ -1,0 +1,31 @@
+@namespace("ru.yandex.practicum.kafka.telemetry.event")
+
+protocol HubEventProtocol {
+
+  enum DeviceTypeAvro {
+    MOTION_SENSOR,
+    TEMPERATURE_SENSOR,
+    LIGHT_SENSOR,
+    CLIMATE_SENSOR,
+    SWITCH_SENSOR
+  }
+
+  record DeviceAddedEventAvro {
+    string id;
+    DeviceTypeAvro type;
+  }
+
+  record DeviceRemovedEventAvro {
+    string id;
+  }
+
+  record HubEventAvro {
+    string hub_id;
+    timestamp_ms timestamp;
+
+    union {
+      DeviceAddedEventAvro,
+      DeviceRemovedEventAvro
+    } payload;
+  }
+}

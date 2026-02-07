@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/analyzer
+    username: postgres
+    password: password
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+
+
+analyzer:
+  topics:
+    hubs: telemetry.hubs
+    snapshots: telemetry.snapshots
+
+server:
+  port: 8080
+
+collector:
+  topics:
+    hubs: telemetry.hubs.v1
+    snapshots: telemetry.snapshots.v1
+kafka:
+  bootstrap-servers: localhost:9092
+  schema-registry: http://localhost:8081
+
+
+topics:
+  sensors: telemetry.sensors
+  snapshots: telemetry.snapshots
+  hubs: telemetry.hubs
