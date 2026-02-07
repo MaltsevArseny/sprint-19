@@ -1,33 +1,18 @@
-spring:
-
-  datasource:
-    url: jdbc:postgresql://localhost:5432/smarthome
-    username: postgres
-    password: password
-
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-
-  kafka:
-    bootstrap-servers: localhost:9092
-    schema-registry: http://localhost:8081
-
-
-analyzer:
-  topics:
-    snapshots: telemetry.snapshots.v1
-    hubs: telemetry.hubs.v1
+server:
+  port: 8080
 
 grpc:
-  client:
-    hub-router:
-      address: static://localhost:59090
-      negotiationType: plaintext
+  server:
+    port: 9090
 
-      collector:
-        topics:
-          sensors: telemetry.sensors
-          hubs: telemetry.hubs
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
 
+kafka:
+  topics:
+    sensors: telemetry.sensors.v1
+    hubs: telemetry.hubs.v1

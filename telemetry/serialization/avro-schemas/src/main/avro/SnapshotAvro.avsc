@@ -1,0 +1,18 @@
+{
+  "type": "record",
+  "name": "SnapshotAvro",
+  "namespace": "ru.yandex.practicum.kafka.telemetry.event",
+  "fields": [
+    {
+      "name": "hubId",
+      "type": "string"
+    },
+    {
+      "name": "sensors",
+      "type": {
+        "type": "map",
+        "values": "bytes"
+      }
+    }
+  ]
+}

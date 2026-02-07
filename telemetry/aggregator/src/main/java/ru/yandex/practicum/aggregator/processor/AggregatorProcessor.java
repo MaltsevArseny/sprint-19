@@ -1,74 +1,52 @@
 package ru.yandex.practicum.aggregator.processor;
 
-import org.apache.kafka.clients.consumer.*;
-import org.apache.kafka.clients.producer.*;
-import org.apache.kafka.common.errors.WakeupException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+import ru.yandex.practicum.kafka.telemetry.event.*;
 
-import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Properties;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 @SuppressWarnings("unused")
-public class AggregatorProcessor implements Runnable {
+@Component
+@RequiredArgsConstructor
+public class AggregatorProcessor {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(AggregatorProcessor.class);
+    private final KafkaTemplate<String, SnapshotAvro> kafkaTemplate;
 
-    private final KafkaConsumer<String, HubEventAvro> consumer;
-    private final KafkaProducer<String, HubEventAvro> producer;
+    private final Map<String, SnapshotAvro> snapshots = new HashMap<>();
 
-    private volatile boolean running = true;
+    @KafkaListener(topics = "${kafka.topics.sensors}")
+    public void process(SensorEventAvro event) {
 
-    public AggregatorProcessor(Properties consumerProps,
-                               Properties producerProps) {
+        String hubId = (String) event.getHubId();
 
-        this.consumer = new KafkaConsumer<>(consumerProps);
-        this.producer = new KafkaProducer<>(producerProps);
+        SnapshotAvro snapshot = snapshots.getOrDefault(
+                hubId,
+                SnapshotAvro.newBuilder()
+                        .setHubId(hubId)
+                        .setSensors(new HashMap<>())
+                        .build()
+        );
 
-        consumer.subscribe(Collections.singletonList("hub-events"));
-    }
+        byte[] newPayload = event.getPayload().toString().getBytes();
 
-    @Override
-    public void run() {
+        byte[] old = snapshot.getSensors().get(event.getId()).array();
 
-        try {
-            while (running) {
+        snapshot.getSensors().put(
+                event.getId(),
+                ByteBuffer.wrap(newPayload)
+        );
 
-                ConsumerRecords<String, HubEventAvro> records =
-                        consumer.poll(Duration.ofMillis(500));
+        snapshots.put(hubId, snapshot);
 
-                for (ConsumerRecord<String, HubEventAvro> record : records) {
-
-                    producer.send(new ProducerRecord<>(
-                            "snapshots",
-                            record.key(),
-                            record.value()
-                    ));
-                }
-
-                consumer.commitSync();
-            }
-
-        } catch (WakeupException e) {
-            log.info("Shutdown signal received");
-        } finally {
-
-            try {
-                producer.flush();
-                consumer.commitSync();
-            } finally {
-                consumer.close();
-                producer.close();
-            }
-        }
-    }
-
-    public void shutdown() {
-        running = false;
-        consumer.wakeup();
+        kafkaTemplate.send(
+                "telemetry.snapshots.v1",
+                hubId,
+                snapshot
+        );
     }
 }
