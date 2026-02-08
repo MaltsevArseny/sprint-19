@@ -1,73 +1,38 @@
 package ru.yandex.practicum.collector.grpc;
 
-import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
-import net.devh.boot.grpc.server.service.GrpcService;
-
-import java.time.Instant;
-
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 import ru.yandex.practicum.collector.service.CollectorKafkaService;
-
-import telemetry.messages.SensorEvent;
-import telemetry.messages.HubEvent;
-import telemetry.services.CollectorGrpc;
-import telemetry.services.CollectResponse;
-
 import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 
-@SuppressWarnings("unused")
-@GrpcService
+@Slf4j
+@Service
 @RequiredArgsConstructor
-public class CollectorGrpcService
-        extends CollectorGrpc.CollectorImplBase {
+public class CollectorGrpcService {
 
     private final CollectorKafkaService kafkaService;
 
-    @Override
-    public void collectSensorEvent(
-            SensorEvent request,
-            StreamObserver<CollectResponse> responseObserver) {
-
-        SensorEventAvro avro =
-                SensorEventAvro.newBuilder()
-                        .setId(request.getSensorId())
-                        .setHubId(request.getHubId())
-                        // ✅ здесь long
-                        .setTimestamp(request.getTimestamp())
-                        .build();
+    // Временные методы для обработки событий
+    public void handleSensorEvent(String sensorId, String hubId, long timestamp) {
+        SensorEventAvro avro = SensorEventAvro.newBuilder()
+                .setId(sensorId)
+                .setHubId(hubId)
+                .setTimestamp(timestamp)
+                .build();
 
         kafkaService.sendSensorEvent(avro);
-
-        responseObserver.onNext(
-                CollectResponse.newBuilder()
-                        .setSuccess(true)
-                        .build());
-
-        responseObserver.onCompleted();
+        log.info("Processed sensor event: sensorId={}, hubId={}", sensorId, hubId);
     }
 
-    @Override
-    public void collectHubEvent(
-            HubEvent request,
-            StreamObserver<CollectResponse> responseObserver) {
-
-        HubEventAvro avro =
-                HubEventAvro.newBuilder()
-                        .setHubId(request.getHubId())
-                        // ✅ тут Instant
-                        .setTimestamp(
-                                Instant.ofEpochMilli(
-                                        request.getTimestamp()))
-                        .build();
+    public void handleHubEvent(String hubId, String deviceId, long timestamp) {
+        HubEventAvro avro = HubEventAvro.newBuilder()
+                .setHubId(hubId)
+                .setTimestamp(timestamp)
+                .build();
 
         kafkaService.sendHubEvent(avro);
-
-        responseObserver.onNext(
-                CollectResponse.newBuilder()
-                        .setSuccess(true)
-                        .build());
-
-        responseObserver.onCompleted();
+        log.info("Processed hub event: hubId={}, deviceId={}", hubId, deviceId);
     }
 }

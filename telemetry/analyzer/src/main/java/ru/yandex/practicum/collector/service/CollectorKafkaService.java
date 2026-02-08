@@ -55,7 +55,7 @@ public class CollectorKafkaService {
         ProducerRecord<String, Object> record =
                 new ProducerRecord<>(
                         topicProps.getSensors(),
-                        event.getHubId().toString(),
+                        event.getHubId(),
                         event
                 );
 
@@ -74,7 +74,7 @@ public class CollectorKafkaService {
         ProducerRecord<String, Object> record =
                 new ProducerRecord<>(
                         topicProps.getHubs(),
-                        event.getHubId().toString(),
+                        event.getHubId(),
                         event
                 );
 

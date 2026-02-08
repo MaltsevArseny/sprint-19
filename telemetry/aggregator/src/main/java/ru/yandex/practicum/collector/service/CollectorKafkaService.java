@@ -19,7 +19,7 @@ public class CollectorKafkaService {
     public void sendSensorEvent(SensorEventAvro event) {
         kafkaTemplate.send(
                 topics.getSensors(),
-                event.getHubId().toString(),
+                event.getHubId(),
                 event
         );
         log.info("Sensor event sent");
@@ -28,7 +28,7 @@ public class CollectorKafkaService {
     public void sendHubEvent(HubEventAvro event) {
         kafkaTemplate.send(
                 topics.getHubs(),
-                event.getHubId().toString(),
+                event.getHubId(),
                 event
         );
         log.info("Hub event sent");

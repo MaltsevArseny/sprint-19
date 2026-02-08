@@ -3,17 +3,12 @@ package ru.yandex.practicum.analyzer.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.HashSet;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(
-        name = "scenarios",
-        uniqueConstraints = @UniqueConstraint(
-                columnNames = {"hub_id", "name"}
-        )
-)
+@Table(name = "scenarios")
 @Getter
 @Setter
 public class Scenario {
@@ -22,29 +17,58 @@ public class Scenario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "hub_id", nullable = false)
+    @Column(name = "scenario_id", length = 255, unique = true)
+    private String scenarioId;
+
+    @Column(name = "hub_id", nullable = false, length = 255)
     private String hubId;
 
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hub_id", insertable = false, updatable = false)
+    private Hub hub;
+
+    @Column(name = "name", nullable = false, length = 255)
     private String name;
 
-    // -------- CONDITIONS --------
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
-    @ManyToMany
-    @JoinTable(
-            name = "scenario_conditions",
-            joinColumns = @JoinColumn(name = "scenario_id"),
-            inverseJoinColumns = @JoinColumn(name = "condition_id")
-    )
-    private Set<Condition> conditions = new HashSet<>();
+    @Column(name = "active", nullable = false)
+    private boolean active;
 
-    // -------- ACTIONS --------
+    @Column(name = "priority")
+    private Integer priority;
 
-    @ManyToMany
-    @JoinTable(
-            name = "scenario_actions",
-            joinColumns = @JoinColumn(name = "scenario_id"),
-            inverseJoinColumns = @JoinColumn(name = "action_id")
-    )
-    private Set<Action> actions = new HashSet<>();
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Condition> conditions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Action> actions = new ArrayList<>();
+
+    public Scenario() {
+        this.active = true;
+        this.priority = 0;
+        this.conditions = new ArrayList<>();
+        this.actions = new ArrayList<>();
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (scenarioId == null) {
+            scenarioId = "scenario_" + System.currentTimeMillis();
+        }
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

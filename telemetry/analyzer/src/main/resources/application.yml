@@ -1,22 +1,67 @@
-kafka:
-  bootstrapServers: localhost:9092
-  schemaRegistry: http://localhost:8081
-  snapshotTopic: telemetry.snapshots.v1
-  hubTopic: telemetry.hubs.v1
-  snapshotGroup: analyzer-snapshots
-  hubGroup: analyzer-hubs
+server:
+  port: 8082
+
+spring:
+  application:
+    name: analyzer
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    schema-registry-url: http://localhost:8081
+
+    consumer:
+      snapshot-consumer:
+        group-id: analyzer-snapshot-group
+        auto-offset-reset: earliest
+        enable-auto-commit: false
+        max-poll-records: 100
+        max-poll-interval-ms: 300000
+        fetch-min-size: 1
+        fetch-max-wait-ms: 500
+
+      hub-consumer:
+        group-id: analyzer-hub-group
+        auto-offset-reset: earliest
+        enable-auto-commit: true
+        auto-commit-interval-ms: 5000
+        max-poll-records: 50
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_home
+    username: postgres
+    password: postgres
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: false
 
 grpc:
   client:
     hub-router:
-      address: static://localhost:59090
-      negotiationType: plaintext
+      address: 'static://localhost:59090'
+      enable-keep-alive: true
+      keep-alive-without-calls: true
+      negotiation-type: plaintext
 
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/analyzer
-    username: postgres
-    password: postgres
-  jpa:
-    hibernate:
-      ddl-auto: update
+logging:
+  level:
+    ru.yandex.practicum.analyzer: INFO
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/analyzer.log
+    max-size: 10MB
+    max-history: 30

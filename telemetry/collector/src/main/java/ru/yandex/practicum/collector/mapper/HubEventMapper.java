@@ -12,7 +12,8 @@ public class HubEventMapper {
         HubEventAvro avro = new HubEventAvro();
 
         avro.setHubId(e.getHubId());
-        avro.setTimestamp(e.getTimestamp());
+        // Конвертируем Instant в long (миллисекунды)
+        avro.setTimestamp(e.getTimestamp().toEpochMilli());
 
         if (e instanceof DeviceAddedEvent a) {
 

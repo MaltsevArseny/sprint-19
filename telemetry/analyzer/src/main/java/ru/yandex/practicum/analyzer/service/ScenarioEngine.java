@@ -2,68 +2,51 @@ package ru.yandex.practicum.analyzer.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.analyzer.entity.ConditionType;
-import ru.yandex.practicum.analyzer.entity.Scenario;
+import ru.yandex.practicum.analyzer.entity.*;
 import ru.yandex.practicum.analyzer.repository.ScenarioRepository;
-import ru.yandex.practicum.kafka.telemetry.event.SnapshotAvro;
 
 import java.util.List;
 
-@SuppressWarnings("unused")
 @Service
 @RequiredArgsConstructor
+@Deprecated
 public class ScenarioEngine {
 
     private final ScenarioRepository scenarioRepo;
     private final HubRouterService hubRouter;
 
-    public void processSnapshot(SnapshotAvro snap){
-
-        List<Scenario> scenarios =
-                scenarioRepo.findByHubId(
-                        snap.getHubId().toString());
+    public void processSnapshot(ru.yandex.practicum.kafka.telemetry.event.SnapshotAvro snap) {
+        List<Scenario> scenarios = scenarioRepo.findByHubId(snap.getHubId());
 
         scenarios.stream()
-                .filter(s -> matches(snap,s))
-                .forEach(s -> execute(snap,s));
+                .filter(s -> matches(snap, s))
+                .forEach(s -> execute(snap, s));
     }
 
-    private boolean matches(
-            SnapshotAvro snap,
-            Scenario s){
-
-        return s.getConditions()
-                .stream()
+    private boolean matches(ru.yandex.practicum.kafka.telemetry.event.SnapshotAvro snap, Scenario s) {
+        return s.getConditions().stream()
                 .allMatch(c -> {
+                    double value = 20.0; // Заглушка
 
-                    Integer val =
-                            extractValue(snap,c.getType());
-
-                    return switch(c.getOperation()){
-                        case GREATER -> val>c.getValue();
-                        case LESS -> val<c.getValue();
-                        case EQUAL -> val.equals(c.getValue());
+                    return switch (c.getOperation()) {
+                        case GREATER -> value > c.getThresholdValue();
+                        case LESS -> value < c.getThresholdValue();
+                        case EQUAL -> Math.abs(value - c.getThresholdValue()) < 0.001;
+                        case NOT_EQUAL -> Math.abs(value - c.getThresholdValue()) > 0.001;
+                        case BETWEEN -> {
+                            Double value2 = c.getThresholdValue2();
+                            yield value2 != null && value >= c.getThresholdValue() && value <= value2;
+                        }
                     };
                 });
     }
 
-    private void execute(
-            SnapshotAvro snap,
-            Scenario s){
-
-        s.getActions().forEach(a ->
-                hubRouter.sendAction(
-                        snap.getHubId().toString(),
-                        s.getName(),
-                        a.getType(),
-                        a.getValue()));
-    }
-
-    private Integer extractValue(
-            SnapshotAvro snap,
-            ConditionType type){
-
-        // тут можно распарсить payload
-        return 20;
+    private void execute(ru.yandex.practicum.kafka.telemetry.event.SnapshotAvro snap, Scenario s) {
+        s.getActions().forEach(a -> hubRouter.sendAction(
+                snap.getHubId(),
+                s.getName(),
+                a.getType().name(),
+                a.getValue() != null ? a.getValue() : 0
+        ));
     }
 }
