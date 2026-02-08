@@ -1,5 +1,8 @@
 package ru.yandex.practicum.analyzer.entity;
 
 public enum ConditionType {
-    TEMPERATURE, HUMIDITY, LIGHT, MOTION
+    TEMPERATURE,
+    HUMIDITY,
+    LIGHT,
+    MOTION
 }

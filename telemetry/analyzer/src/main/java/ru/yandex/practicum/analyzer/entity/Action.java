@@ -17,6 +17,7 @@ public class Action {
     private String type;
     private Integer value;
 
+    // 👇 ВОТ ЭТОГО НЕ ХВАТАЛО
     @ManyToOne
     @JoinColumn(name = "scenario_id")
     private Scenario scenario;
