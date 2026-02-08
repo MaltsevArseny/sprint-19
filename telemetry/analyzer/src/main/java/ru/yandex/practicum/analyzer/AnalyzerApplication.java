@@ -13,16 +13,18 @@ public class AnalyzerApplication {
 
     public static void main(String[] args) {
 
-        ConfigurableApplicationContext context =
+        ConfigurableApplicationContext ctx =
                 SpringApplication.run(AnalyzerApplication.class, args);
 
-        HubEventProcessor hub = context.getBean(HubEventProcessor.class);
-        SnapshotProcessor snap = context.getBean(SnapshotProcessor.class);
+        HubEventProcessor hub = ctx.getBean(HubEventProcessor.class);
+        SnapshotProcessor snap = ctx.getBean(SnapshotProcessor.class);
 
         Thread hubThread = new Thread(hub);
-        Thread snapThread = new Thread(snap);
-
+        hubThread.setName("hub-events");
         hubThread.start();
+
+        Thread snapThread = new Thread(snap);
+        snapThread.setName("snapshots");
         snapThread.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

@@ -2,11 +2,11 @@ package ru.yandex.practicum.collector.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
-import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
+
+import ru.yandex.practicum.collector.config.TopicProps;
+import ru.yandex.practicum.kafka.telemetry.event.*;
 
 @SuppressWarnings("unused")
 @Service
@@ -15,19 +15,19 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 public class CollectorKafkaService {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
-
-    @Value("${kafka.topics.sensors}")
-    private String sensorsTopic;
-
-    @Value("${kafka.topics.hubs}")
-    private String hubsTopic;
+    private final TopicProps topics;
 
     public void sendSensorEvent(SensorEventAvro event) {
-        kafkaTemplate.send(sensorsTopic, event.getHubId().toString(), event);
+        kafkaTemplate.send(
+                topics.getSensors(),
+                event.getHubId().toString(),
+                event);
     }
 
     public void sendHubEvent(HubEventAvro event) {
-        kafkaTemplate.send(hubsTopic, event.getHubId().toString(), event);
+        kafkaTemplate.send(
+                topics.getHubs(),
+                event.getHubId().toString(),
+                event);
     }
 }
-

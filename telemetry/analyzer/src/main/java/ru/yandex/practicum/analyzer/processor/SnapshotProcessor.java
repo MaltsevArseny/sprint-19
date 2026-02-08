@@ -1,57 +1,87 @@
 package ru.yandex.practicum.analyzer.processor;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.errors.WakeupException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import ru.yandex.practicum.analyzer.entity.ConditionType;
+import ru.yandex.practicum.analyzer.service.HubRouterService;
+import ru.yandex.practicum.analyzer.service.ScenarioService;
+import ru.yandex.practicum.kafka.telemetry.event.SnapshotAvro;
 
-import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
-
+import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
+@Slf4j
+@Component
+@RequiredArgsConstructor
 public class SnapshotProcessor implements Runnable {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(SnapshotProcessor.class);
+    private final KafkaConsumer<String, SnapshotAvro> consumer;
+    private final ScenarioService scenarioService;
+    private final HubRouterService hubRouterService;
 
-    private final KafkaConsumer<String, HubEventAvro> consumer;
+    @Value("${kafka.snapshotTopic}")
+    private String topic;
 
     private volatile boolean running = true;
-
-    public SnapshotProcessor(Properties props) {
-        this.consumer = new KafkaConsumer<>(props);
-        consumer.subscribe(List.of("snapshots"));
-    }
 
     @Override
     public void run() {
 
+        consumer.subscribe(List.of(topic));
+
         try {
             while (running) {
 
-                ConsumerRecords<String, HubEventAvro> records =
+                var records =
                         consumer.poll(Duration.ofMillis(500));
 
-                for (ConsumerRecord<String, HubEventAvro> record : records) {
-                    log.info("Event received for hub: {}",
-                            record.value().getHubId());
+                for (var record : records) {
+                    handleSnapshot(record.value());
                 }
 
                 consumer.commitSync();
             }
 
-        } catch (WakeupException e) {
-            log.info("Shutdown signal received");
-
+        } catch (WakeupException ignored) {
         } finally {
-            try {
-                consumer.commitSync();
-            } finally {
-                consumer.close();
-            }
+            consumer.close();
         }
+    }
+
+    private void handleSnapshot(SnapshotAvro snapshot) {
+
+        Map<ConditionType, Integer> values = new HashMap<>();
+
+        snapshot.getSensors().forEach((sensorId, buffer) -> {
+
+            ByteBuffer bb = (ByteBuffer) buffer;
+
+            int value = bb.getInt(0);
+
+            values.put(
+                    ConditionType.valueOf(sensorId.toString()),
+                    value
+            );
+        });
+
+        var actions =
+                scenarioService.getActionsForSnapshot(
+                        snapshot.getHubId().toString(),
+                        values
+                );
+
+        actions.forEach(a ->
+                hubRouterService.sendAction(
+                        snapshot.getHubId().toString(),
+                        a.getScenario().getName(),
+                        a.getType(),
+                        a.getValue() == null ? 0 : a.getValue()
+                ));
     }
 
     public void shutdown() {

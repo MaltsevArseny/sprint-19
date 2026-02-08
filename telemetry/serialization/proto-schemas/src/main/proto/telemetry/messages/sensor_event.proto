@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package telemetry.messages;
 
-option java_package = "telemetry.messages";
 option java_multiple_files = true;
 
 message SensorEvent {

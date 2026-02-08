@@ -43,14 +43,13 @@
                 <configuration>
                     <!--suppress UnresolvedMavenProperty -->
                     <protocArtifact>
-                        com.google.protobuf:protoc:3.21.12:exe:${os.detected.classifier}
+                        com.google.protobuf:protoc:3.25.1:exe:${os.detected.classifier}
                     </protocArtifact>
 
                     <pluginId>grpc-java</pluginId>
-
                     <!--suppress UnresolvedMavenProperty -->
                     <pluginArtifact>
-                        io.grpc:protoc-gen-grpc-java:1.58.0:exe:${os.detected.classifier}
+                        io.grpc:protoc-gen-grpc-java:1.63.0:exe:${os.detected.classifier}
                     </pluginArtifact>
                 </configuration>
 
@@ -65,6 +64,7 @@
             </plugin>
         </plugins>
     </build>
+
 
 
 </project>

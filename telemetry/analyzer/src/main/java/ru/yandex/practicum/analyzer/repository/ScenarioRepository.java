@@ -7,7 +7,7 @@ import java.util.List;
 
 @SuppressWarnings("unused")
 public interface ScenarioRepository
-        extends JpaRepository<Scenario, Long> {
-
+        extends JpaRepository<Scenario,Long> {
     List<Scenario> findByHubId(String hubId);
 }
+

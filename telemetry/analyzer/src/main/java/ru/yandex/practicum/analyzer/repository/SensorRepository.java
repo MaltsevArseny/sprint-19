@@ -5,5 +5,4 @@ import ru.yandex.practicum.analyzer.entity.Sensor;
 
 @SuppressWarnings("unused")
 public interface SensorRepository
-        extends JpaRepository<Sensor, String> {
-}
+        extends JpaRepository<Sensor,String> {}

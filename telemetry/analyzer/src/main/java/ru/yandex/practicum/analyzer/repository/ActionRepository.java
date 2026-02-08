@@ -5,5 +5,5 @@ import ru.yandex.practicum.analyzer.entity.Action;
 
 @SuppressWarnings("unused")
 public interface ActionRepository
-        extends JpaRepository<Action, Long> {
-}
+        extends JpaRepository<Action,Long> {}
+

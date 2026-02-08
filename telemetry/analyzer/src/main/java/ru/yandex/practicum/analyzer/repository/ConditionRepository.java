@@ -5,5 +5,5 @@ import ru.yandex.practicum.analyzer.entity.Condition;
 
 @SuppressWarnings("unused")
 public interface ConditionRepository
-        extends JpaRepository<Condition, Long> {
-}
+        extends JpaRepository<Condition,Long> {}
+

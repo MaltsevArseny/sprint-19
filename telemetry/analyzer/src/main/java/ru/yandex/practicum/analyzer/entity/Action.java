@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Table(name = "actions")
 @Getter
 @Setter
 public class Action {
@@ -13,8 +14,10 @@ public class Action {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    private ActionType type;
-
+    private String type;
     private Integer value;
+
+    @ManyToOne
+    @JoinColumn(name = "scenario_id")
+    private Scenario scenario;
 }

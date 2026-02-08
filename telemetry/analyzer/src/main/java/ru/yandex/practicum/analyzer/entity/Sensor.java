@@ -4,10 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
-@Setter
 @Entity
-@Table(name = "sensors")
+@Table(name="sensors")
+@Getter @Setter
 public class Sensor {
 
     @Id

@@ -16,3 +16,6 @@ kafka:
   topics:
     sensors: telemetry.sensors.v1
     hubs: telemetry.hubs.v1
+topics:
+  sensors: telemetry.sensors.v1
+  hubs: telemetry.hubs.v1
