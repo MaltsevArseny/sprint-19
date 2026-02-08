@@ -1,0 +1,43 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    schema-registry-url: http://localhost:8081
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_home
+    username: postgres
+    password: postgres
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+logging:
+  level:
+    ru.yandex.practicum.analyzer: INFO
+    org.springframework.kafka: INFO
+    org.hibernate: WARN
+  file:
+    name: logs/analyzer.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+
+analyzer:
+  metrics:
+    enabled: true
+    export:
+      prometheus:
+        enabled: true
+  health:
+    kafka:
+      enabled: true
+    db:
+      enabled: true
